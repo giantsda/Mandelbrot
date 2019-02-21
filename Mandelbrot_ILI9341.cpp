@@ -1,32 +1,33 @@
-
 #include "SPI.h"
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 
-// For the Adafruit shield, these are the default.
+//Hardware: I use a ESP32 board (https://www.amazon.com/gp/css/order-history/?ref=hud_2_gw_profile&pf_rd_p=3e4b2fb9-318c-453e-8ff1-8d3ff3162bd0&pf_rd_r=9T70D3KPH2SG92PE42W5)
+//and a 320*240 SPI display with ILI9341 drive (https://www.amazon.com/gp/product/B01CZL6QIQ/ref=ppx_yo_dt_b_asin_title_o03_s00?ie=UTF8&psc=1)
+//I use the Adafruit_GFX and Adafruit_ILI9341 libraries (you can find them on github)
 
-#define TFT_CS 15
-#define TFT_DC 2
-#define TFT_MOSI 23
-#define TFT_CLK 18
-#define TFT_RST 4
-#define TFT_MISO 19
-#define TFT_LED 32
+#define TFT_CS 15   // Chip Select pin, or called SS (slave select)
+#define TFT_DC 2	// Data/Command pin
+#define TFT_MOSI 23	// master out slave in
+#define TFT_CLK 18	// clock pin
+#define TFT_RST 4	// reset pin
+#define TFT_MISO 19	//master in slave out
+#define TFT_LED 32	// LED power pin, I find the display like 3.3 V
 
-#define double float
+#define double float  // to speed up by about two times, we sacrifice how much to zoom in
 
 typedef struct
 {
   int r, g, b;
 } COLOUR;
 
-uint16_t
+uint16_t // RGB to 565 format (5+6+5=18 bits= 2 bytes, this is how color is represented)
 rgbTo565 (uint8_t r, uint8_t g, uint8_t b)
 {
   return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 }
 
-COLOUR
+COLOUR // value to RGB using jet colormap
 GetColour (double v, double vmin, double vmax)
 {
   COLOUR c =
@@ -67,7 +68,7 @@ COLOUR c;
 
 Adafruit_ILI9341 tft = Adafruit_ILI9341 (TFT_CS, TFT_DC, TFT_MOSI, TFT_CLK,
 TFT_RST,
-           TFT_MISO);
+					 TFT_MISO); // Constructor
 
 int width;
 int height;
@@ -90,11 +91,12 @@ setup ()
   width = tft.width ();  //320
   height = tft.height ();  //240
 
-//  ledcSetup(0, 5000, 8);
-//  ledcAttachPin(32, 0);
-//  ledcWrite(0, 80);
-  Serial.begin (9600);
-  Serial.println (F ("TFT LCD test"));
+  ledcSetup (0, 5000, 8); // adjust brightness
+  ledcAttachPin (32, 0);
+  ledcWrite (0, 80);
+
+  Serial.begin (9600); // Serial communication for debugging purpose
+  Serial.println (F("TFT LCD test"));
   Serial.print ("TFT size is ");
   Serial.print (width);
   Serial.print ("x");
@@ -106,22 +108,23 @@ setup ()
   ledcSetup (0, 5000, 8);
   ledcWrite (0, 70);
 }
-double xStore[] =
-  { -0.658266142810369, -0.21503361460851339, 0.362563027602331,
-      0.296308640491387, 0.376889448556568, 0.288375478361361,
-      0.410452789284661, 0.393104502900071, -0.525791949630041,
-      0.288117250106003, -0.129777809356499, -0.044920999538265,
-      -0.467460633288236, 0.375075932756520, 0.407084260991775,
-      0.272113401976109, 0.074422641386633, -1.482308337854703,
-      0.380331133286605, -0.038337216755400, -0.473135527559957,
-      0.085199004711218, -0.605347743063962, -0.538433560374785,
-      -0.445254125674094, -1.766739539051968, -0.526171662677524,
-      0.289201709169692, 0.148466855399092, -0.547019172627289,
-      -0.561667297134825, -0.525452900107244, -0.250029874541825,
-      -0.655311899899588, 0.404286784342259, 0.325681596513175,
-      0.279901658059328, 0.399790560175320
 
-  };
+double xStore[] = // predefined interesting points. I Used the matlab code to find them, and recorded them manually.
+      { -0.658266142810369, -0.21503361460851339, 0.362563027602331,
+	  0.296308640491387, 0.376889448556568, 0.288375478361361,
+	  0.410452789284661, 0.393104502900071, -0.525791949630041,
+	  0.288117250106003, -0.129777809356499, -0.044920999538265,
+	  -0.467460633288236, 0.375075932756520, 0.407084260991775,
+	  0.272113401976109, 0.074422641386633, -1.482308337854703,
+	  0.380331133286605, -0.038337216755400, -0.473135527559957,
+	  0.085199004711218, -0.605347743063962, -0.538433560374785,
+	  -0.445254125674094, -1.766739539051968, -0.526171662677524,
+	  0.289201709169692, 0.148466855399092, -0.547019172627289,
+	  -0.561667297134825, -0.525452900107244, -0.250029874541825,
+	  -0.655311899899588, 0.404286784342259, 0.325681596513175,
+	  0.279901658059328, 0.399790560175320
+
+      };
 double yStore[] =
   { 0.437622059571268, 0.67999116792639069, -0.642474639761669,
       0.587113362465481, -0.259148866240585, -0.578641984311939,
@@ -139,16 +142,16 @@ double yStore[] =
 
   };
 
-char start[] =
+char start[] =  // first page introduction
     "This program prints Mandelbrot set: z(0)=0; \n z(n+1)=z(n)^2+c, where "
-  " z and c are defined in the complex space. The program will zoom in "
-  "a random point until it exceeds the precision of floating number.\n\n"
-  "Made by Chen Shen\n2/15/2019\nchenshen@rams.colostate.edu";
+	" z and c are defined in the complex space. The program will zoom in "
+	"a random point until it exceeds the precision of floating number.\n\n"
+	"Made by Chen Shen\n2/15/2019\nchenshen@rams.colostate.edu";
 char second[] =
     "This board uses 3V input. Using 2 AA battery can last for about 48 hours or use the USB port, but not use both at the same time.\n "
-  "If the program hangs, there is a reset button on the back, Press it will restart the program.\n";
+	"If the program hangs, there is a reset button on the back, Press it will restart the program.\n";
 
-int pickN = 38;
+int pickN = 38; // I have 38 predefined points
 
 void
 printStart (char* start)
@@ -189,6 +192,7 @@ loop (void)
   double zm = 1;
   tft.fillScreen (ILI9341_BLACK);
 
+  // Mandelbrot iteration
   while (dx > 1e-8)
     {
       x1 = x0 - 2. * exp (-zm / 20.);
@@ -199,59 +203,57 @@ loop (void)
       dx = (x2 - x1) / (width - 1);
       dy = (y2 - y1c) / (height - 1);
       if (FIRST)
-  {
-    dx0 = dx;
-  }
+	{
+	  dx0 = dx;
+	}
 
       for (i = 0; i < height; i++)
-  for (j = 0; j < width; j++)
-    {
-      if (i == 40 && j == 10)
-        {
-    tft.setCursor (0, 0);
-    sprintf (str, "%5.1f", dx0 / dx);
-    tft.print ("Magnification= ");
-    tft.print (str);
+	for (j = 0; j < width; j++)
+	  {
+	    if (i == 40 && j == 10)
+	      {
+		tft.setCursor (0, 0);
+		sprintf (str, "%5.1f", dx0 / dx);
+		tft.print ("Magnification= ");
+		tft.print (str);
 
-//    tft.print (" ");
-//    tft.print (zm);
-    if (FIRST)
-      {
-        tft.print ("\nPick=");
-        tft.print (pick);
-        FIRST = false;
-      }
+		if (FIRST)
+		  {
+		    tft.print ("\nPick=");
+		    tft.print (pick);
+		    FIRST = false;
+		  }
 
-        }
-      else if (i == 131 && j == 0)
-        {
-    tft.drawLine (width / 2 - 10, height / 2, width / 2 + 10,
-            height / 2, ILI9341_BLACK);
-    tft.drawLine (width / 2, height / 2 - 10, width / 2,
-            height / 2 + 10, ILI9341_BLACK);
+	      }
+	    else if (i == 131 && j == 0)
+	      {
+		tft.drawLine (width / 2 - 10, height / 2, width / 2 + 10,
+			      height / 2, ILI9341_BLACK);
+		tft.drawLine (width / 2, height / 2 - 10, width / 2,
+			      height / 2 + 10, ILI9341_BLACK);
 
-        }
-      cR = (j - 1) * dx + x1;
-      cI = (i - 1) * dy + y1c;
-      R = 0;
-      I = 0;
-      iteration = 0;
-      while (I * I + R * R <= 4. && iteration < maxIte)
-        {
-    Rtemp = R * R - I * I + cR;
-    I = 2 * R * I + cI;
-    R = Rtemp;
-    iteration = iteration + 1;
-        }
+	      }
+	    cR = (j - 1) * dx + x1;
+	    cI = (i - 1) * dy + y1c;
+	    R = 0;
+	    I = 0;
+	    iteration = 0;
+	    while (I * I + R * R <= 4. && iteration < maxIte)
+	      {
+		Rtemp = R * R - I * I + cR;
+		I = 2 * R * I + cI;
+		R = Rtemp;
+		iteration = iteration + 1;
+	      }
 
-      c = GetColour (iteration, maxIte / 8, maxIte);
-      tft.drawPixel (j, i, rgbTo565 (c.r, c.g, c.b));
-    }
+	    c = GetColour (iteration, maxIte / 8, maxIte);
+	    tft.drawPixel (j, i, rgbTo565 (c.r, c.g, c.b));
+	  }
 
       if (iterationI < 5)
-  zm = zm + 20;
+	zm = zm + 20;
       else
-  zm = zm + 5;
+	zm = zm + 5;
 
       iterationI++;
     }
